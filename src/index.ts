@@ -123,8 +123,8 @@ const app = command({
     if (args.search) {
       declarationsToSearch.sort(
         (a, b) =>
-          levDistance(a.searchString, args.search!) -
-          levDistance(b.searchString, args.search!)
+          (levDistance(a.searchString, args.search!) / a.searchString.length) -
+          (levDistance(b.searchString, args.search!) / b.searchString.length)
       );
     }
 
