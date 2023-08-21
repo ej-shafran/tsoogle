@@ -1,6 +1,6 @@
 import Debug from "debug";
 
-import { NAME } from "./constants";
+import { name } from "./constants";
 
-export const debug = Debug(NAME);
+export const debug = Debug(name);
 export const utilDebug = debug.extend("utils");
