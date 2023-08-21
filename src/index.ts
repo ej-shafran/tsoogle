@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { command, run } from "cmd-ts";
 
 const app = command({
