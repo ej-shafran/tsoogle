@@ -1,4 +1,7 @@
 import { randomBytes } from "crypto";
+import { utilDebug } from "./debug";
+
+const debug = utilDebug.extend("levDistance");
 
 function cached<TParams extends unknown[], TReturn>(
   func: (...params: TParams) => TReturn
@@ -24,15 +27,22 @@ function cached<TParams extends unknown[], TReturn>(
       })
       .join(sep);
 
-    if (cache.has(hash)) return cache.get(hash)!;
+    if (cache.has(hash)) {
+      const result = cache.get(hash)!;
+      debug("cache has result for %j: %j", args, result);
+      return result;
+    }
 
     const result = func(...args);
+    debug("adding result to cache for %j: %j", args, result);
     cache.set(hash, result);
     return result;
   };
 }
 
 const levDistanceImpl = (a: string, b: string): number => {
+  debug("checking Levenshtein distance between `%s` and `%s`", a, b);
+
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
 

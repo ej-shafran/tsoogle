@@ -4,7 +4,7 @@ import ts from "typescript";
 import { command, flag, positional, run } from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
 import assert from "assert";
-import { NAME, checkDiagnostics, readConfig } from "./utils";
+import { NAME, checkDiagnostics, debug, readConfig } from "./utils";
 
 const app = command({
   name: NAME,
@@ -22,6 +22,8 @@ const app = command({
     }),
   },
   async handler(args) {
+    debug("running %s, arguments were %o", NAME, args);
+
     const options = readConfig(args.fileName);
 
     const program = ts.createProgram({
@@ -32,6 +34,7 @@ const app = command({
     const checker = program.getTypeChecker();
 
     if (args.checkDiagnostics) {
+      debug("checking diagnostics...");
       checkDiagnostics(program);
     }
 
@@ -45,7 +48,7 @@ const app = command({
         if (external) return [];
 
         const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
-        assert(moduleSymbol, "Source file is not a module");
+        assert(moduleSymbol, "source file is not a module");
 
         const exports = checker.getExportsOfModule(moduleSymbol);
         return [[sourceFile.fileName, exports.length]];
