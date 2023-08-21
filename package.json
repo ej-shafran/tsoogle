@@ -4,8 +4,9 @@
   "description": "",
   "bin": "./bin/index.js",
   "scripts": {
-    "build": "esbuild --bundle ./src/index.ts --outdir=./bin --packages=external --platform=node",
-    "start": "npm run build && ./bin/index.js $1"
+    "build": "node ./build.mjs",
+    "start": "pnpm build && ./bin/index.js $@",
+    "check": "tsc"
   },
   "keywords": [],
   "author": "",
