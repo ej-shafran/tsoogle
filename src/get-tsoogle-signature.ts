@@ -2,19 +2,32 @@ import assert from "assert";
 import ts from "typescript";
 
 export type TsoogleSignature = {
-  name: string | undefined;
+  name?: string;
   typeParams: string | undefined;
   returnType: string;
   parameters: string[];
 };
 
-function getTsoogleImpl(signature: ts.Signature, checker: ts.TypeChecker) {
+export function stringifyTsoogle(signature: TsoogleSignature, withName = true) {
+  const withoutName = `${signature.typeParams ?? ""
+    }(${signature.parameters.join(", ")}) => ${signature.returnType}`;
+
+  if (!withName || !signature.name) {
+    return withoutName;
+  } else {
+    return `${signature.name} :: ${withoutName}`;
+  }
+}
+
+function getTsoogleImpl(signature: ts.Signature, checker: ts.TypeChecker): TsoogleSignature {
   const parameters = getParameters(signature, checker);
   const returnType = getReturnType(signature, checker);
+  const typeParams = getTypeParams(signature, checker);
 
   return {
     parameters,
     returnType,
+    typeParams,
   };
 }
 
@@ -26,8 +39,7 @@ function getReturnType(
 
   const signatures = type.getCallSignatures();
   if (signatures.length > 0) {
-    const { parameters, returnType } = getTsoogleImpl(signatures[0], checker);
-    return `(${parameters.join(", ")}) => ${returnType}`;
+    return stringifyTsoogle(getTsoogleImpl(signatures[0], checker));
   }
 
   return checker.typeToString(type);
@@ -42,8 +54,7 @@ function getParameters(
     const signatures = type.getCallSignatures();
 
     if (signatures.length > 0) {
-      const { parameters, returnType } = getTsoogleImpl(signatures[0], checker);
-      return `(${parameters.join(", ")}) => ${returnType}`;
+      return stringifyTsoogle(getTsoogleImpl(signatures[0], checker));
     }
 
     return checker.typeToString(type);
@@ -51,20 +62,24 @@ function getParameters(
 }
 
 function getTypeParams(signature: ts.Signature, checker: ts.TypeChecker) {
-  const typeParams = signature.getTypeParameters()?.flatMap((param) => {
-    const paramDeclaration = checker.typeParameterToDeclaration(
-      param,
-      undefined,
-      ts.NodeBuilderFlags.None
-    );
-    const name = paramDeclaration?.name.escapedText;
-    if (!name) return [];
-    return [name];
-  });
-  let typeParamString = "";
-  if (typeParams) typeParamString = `<${typeParams.join(", ")}>`;
+  const typeParams = signature.getTypeParameters();
 
-  return typeParamString;
+  if (!typeParams) return "";
+
+  const typeParamString = typeParams
+    .flatMap((param) => {
+      const paramDeclaration = checker.typeParameterToDeclaration(
+        param,
+        undefined,
+        ts.NodeBuilderFlags.None
+      );
+      const name = paramDeclaration?.name.escapedText;
+      if (!name) return [];
+      return [name];
+    })
+    .join(", ");
+
+  return `<${typeParamString}>`;
 }
 
 export function getTsoogleSignature(

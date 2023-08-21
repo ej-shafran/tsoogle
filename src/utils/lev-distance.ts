@@ -9,7 +9,7 @@ function cached<TParams extends unknown[], TReturn>(
   const cache = new Map<string, TReturn>();
   const sep = randomBytes(12).toString();
 
-  return function(...args: TParams) {
+  return function (...args: TParams) {
     const hash = args
       .map((arg) => {
         switch (typeof arg) {
@@ -29,20 +29,20 @@ function cached<TParams extends unknown[], TReturn>(
 
     if (cache.has(hash)) {
       const result = cache.get(hash)!;
-      debug("cache has result for %j: %j", args, result);
+      debug("cache hit");
+      debug("cache result is %s (for %s)", String(result), args.join(" -> "));
       return result;
     }
 
+    debug("cache miss");
     const result = func(...args);
-    debug("adding result to cache for %j: %j", args, result);
+    debug("manual result is %s (for %s)", String(result), args.join(" -> "));
     cache.set(hash, result);
     return result;
   };
 }
 
 const levDistanceImpl = (a: string, b: string): number => {
-  debug("checking Levenshtein distance between `%s` and `%s`", a, b);
-
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
 

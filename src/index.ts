@@ -12,15 +12,13 @@ import {
   string,
 } from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
+import { NAME, checkDiagnostics, debug, readConfig, getExports } from "./utils";
 import {
-  NAME,
-  checkDiagnostics,
-  debug,
-  readConfig,
-  getExports,
-  levDistance,
-} from "./utils";
-import { TsoogleSignature, getTsoogleSignature } from "./get-tsoogle-signature";
+  TsoogleSignature,
+  getTsoogleSignature,
+  stringifyTsoogle,
+} from "./get-tsoogle-signature";
+import { getDistance } from "./get-tsoogle-distance";
 
 const app = command({
   name: NAME,
@@ -81,9 +79,20 @@ const app = command({
       return sourceFile
         .getChildren()
         .flatMap(function walk(node): TsoogleSignature[] {
-          if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
+          if (ts.isFunctionDeclaration(node)) {
             const result = getTsoogleSignature(node, checker);
             if (exports.some((name) => result.name === name)) {
+              return [result];
+            } else {
+              return [];
+            }
+          }
+
+          // TODO prefix class name
+          if (ts.isMethodDeclaration(node) && ts.isClassLike(node.parent)) {
+            const className = node.parent.name?.getText();
+            if (exports.some((name) => className === name)) {
+              const result = getTsoogleSignature(node, checker);
               return [result];
             } else {
               return [];
@@ -94,11 +103,13 @@ const app = command({
             const sibling = node.parent
               .getChildren()
               .find((child): child is ts.Identifier => ts.isIdentifier(child));
+
             const result = getTsoogleSignature(
               node,
               checker,
               sibling?.getText()
             );
+
             if (exports.some((name) => result.name === name)) {
               return [result];
             } else {
@@ -110,26 +121,18 @@ const app = command({
         });
     });
 
-    const declarationsToSearch = tsoogleDeclarations.map((declaration) => {
-      const searchString = `${declaration.typeParams ?? ""
-        }(${declaration.parameters.join(", ")}) => ${declaration.returnType}`;
-
-      return {
-        name: declaration.name,
-        searchString,
-      };
-    });
-
     if (args.search) {
-      declarationsToSearch.sort(
-        (a, b) =>
-          (levDistance(a.searchString, args.search!) / a.searchString.length) -
-          (levDistance(b.searchString, args.search!) / b.searchString.length)
-      );
+      const search = args.search!;
+      tsoogleDeclarations.sort((a, b) => {
+        const aDistance = getDistance(a, search);
+        const bDistance = getDistance(b, search);
+
+        return aDistance - bDistance;
+      });
     }
 
-    declarationsToSearch.slice(0, args.limit).forEach((declaration) => {
-      console.log(`${declaration.name} :: ${declaration.searchString}`);
+    tsoogleDeclarations.slice(0, args.limit).forEach((declaration) => {
+      console.log(stringifyTsoogle(declaration));
     });
   },
 });
