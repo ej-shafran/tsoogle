@@ -1,9 +1,26 @@
 #!/usr/bin/env node
 
 import ts from "typescript";
-import { command, flag, positional, run } from "cmd-ts";
+import {
+  command,
+  flag,
+  number,
+  option,
+  optional,
+  positional,
+  run,
+  string,
+} from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
-import { NAME, checkDiagnostics, debug, readConfig, getExports } from "./utils";
+import {
+  NAME,
+  checkDiagnostics,
+  debug,
+  readConfig,
+  getExports,
+  levDistance,
+} from "./utils";
+import { TsoogleSignature, getTsoogleSignature } from "./get-tsoogle-signature";
 
 const app = command({
   name: NAME,
@@ -18,6 +35,19 @@ const app = command({
       short: "c",
       description: "Whether to check for (and error on) TypeScript errors",
       defaultValue: () => false,
+    }),
+    search: option({
+      type: optional(string),
+      long: "search",
+      short: "s",
+      description: "The type siganture to search for",
+    }),
+    limit: option({
+      type: number,
+      long: "limit",
+      short: "l",
+      description: "The amount of results to show",
+      defaultValue: () => 10,
     }),
   },
   async handler(args) {
@@ -46,13 +76,61 @@ const app = command({
       );
 
     const exports = getExports(sourceFiles, checker);
-    console.log("exports: ", exports);
 
-    // const tsoogleDeclarations = sourceFiles.flatMap((sourceFile) => {
-    //   return sourceFile.fileName;
-    // });
-    //
-    // console.log(tsoogleDeclarations);
+    const tsoogleDeclarations = sourceFiles.flatMap((sourceFile) => {
+      return sourceFile
+        .getChildren()
+        .flatMap(function walk(node): TsoogleSignature[] {
+          if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
+            const result = getTsoogleSignature(node, checker);
+            if (exports.some((name) => result.name === name)) {
+              return [result];
+            } else {
+              return [];
+            }
+          }
+
+          if (ts.isArrowFunction(node)) {
+            const sibling = node.parent
+              .getChildren()
+              .find((child): child is ts.Identifier => ts.isIdentifier(child));
+            const result = getTsoogleSignature(
+              node,
+              checker,
+              sibling?.getText()
+            );
+            if (exports.some((name) => result.name === name)) {
+              return [result];
+            } else {
+              return [];
+            }
+          }
+
+          return node.getChildren().flatMap(walk);
+        });
+    });
+
+    const declarationsToSearch = tsoogleDeclarations.map((declaration) => {
+      const searchString = `${declaration.typeParams ?? ""
+        }(${declaration.parameters.join(", ")}) => ${declaration.returnType}`;
+
+      return {
+        name: declaration.name,
+        searchString,
+      };
+    });
+
+    if (args.search) {
+      declarationsToSearch.sort(
+        (a, b) =>
+          levDistance(a.searchString, args.search!) -
+          levDistance(b.searchString, args.search!)
+      );
+    }
+
+    declarationsToSearch.slice(0, args.limit).forEach((declaration) => {
+      console.log(`${declaration.name} :: ${declaration.searchString}`);
+    });
   },
 });
 
