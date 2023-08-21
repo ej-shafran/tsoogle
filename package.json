@@ -1,0 +1,20 @@
+{
+  "name": "tsoogle",
+  "version": "1.0.0",
+  "description": "",
+  "bin": "./bin/index.js",
+  "scripts": {
+    "build": "esbuild --bundle ./src/index.ts --outdir=./bin --packages=external --platform=node"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cmd-ts": "^0.13.0",
+    "typescript": "^5.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.1",
+    "esbuild": "^0.19.2"
+  }
+}
