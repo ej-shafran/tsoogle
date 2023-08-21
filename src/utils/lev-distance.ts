@@ -9,7 +9,7 @@ function cached<TParams extends unknown[], TReturn>(
   const cache = new Map<string, TReturn>();
   const sep = randomBytes(12).toString();
 
-  return function (...args: TParams) {
+  return function(...args: TParams) {
     const hash = args
       .map((arg) => {
         switch (typeof arg) {
@@ -42,22 +42,35 @@ function cached<TParams extends unknown[], TReturn>(
   };
 }
 
-const levDistanceImpl = (a: string, b: string): number => {
+function lev(a: string, b: string) {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
 
-  if (a[0] === b[0]) {
-    return levDistance(a.slice(1), b.slice(1));
+  const matrix = Array(a.length)
+    .fill(0)
+    .map((_, i) =>
+      Array(b.length)
+        .fill(0)
+        .map((_, j) => i + j)
+    );
+
+  for (let i = 0; i < a.length; i++) {
+    for (let j = 0; j < b.length; j++) {
+      if (a[i] === b[j]) {
+        matrix[i][j] = i * j === 0 ? i + j : matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] =
+          1 +
+          Math.min(
+            i * j === 0 ? i + j : matrix[i - 1][j - 1],
+            i === 0 ? j : matrix[i - 1][j],
+            j === 0 ? i : matrix[i][j - 1]
+          );
+      }
+    }
   }
 
-  return (
-    1 +
-    Math.min(
-      levDistance(a.slice(1), b),
-      levDistance(a, b.slice(1)),
-      levDistance(a.slice(1), b.slice(1))
-    )
-  );
-};
+  return matrix[a.length - 1][b.length - 1];
+}
 
-export const levDistance = cached(levDistanceImpl);
+export const levDistance = cached(lev);
