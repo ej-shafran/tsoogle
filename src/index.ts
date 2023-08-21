@@ -4,10 +4,10 @@ import ts from "typescript";
 import { command, flag, positional, run } from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
 import assert from "assert";
-import { checkDiagnostics, readConfig } from "./utils";
+import { NAME, checkDiagnostics, readConfig } from "./utils";
 
 const app = command({
-  name: "tsoogle",
+  name: NAME,
   args: {
     fileName: positional({
       type: ExistingPath,
