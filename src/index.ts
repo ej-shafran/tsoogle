@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 import ts from "typescript";
-import { command, positional, run } from "cmd-ts";
+import { command, flag, positional, run } from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
 import assert from "assert";
-import path from "path";
-import { fileExists, readConfig } from "./utils";
+import { checkDiagnostics, readConfig } from "./utils";
 
 const app = command({
   name: "tsoogle",
@@ -15,26 +14,30 @@ const app = command({
       displayName: "entry",
       description: "Entry point to the TypeScript source code",
     }),
+    checkDiagnostics: flag({
+      long: "check-diagnostics",
+      short: "c",
+      description: "Whether to check for (and error on) TypeScript errors",
+      defaultValue: () => false,
+    }),
   },
-  async handler({ fileName }) {
-    const configFile = ts.findConfigFile(path.dirname(fileName), fileExists);
-    const result = readConfig(configFile);
-    const program = ts.createProgram({ rootNames: [fileName], options: result });
+  async handler(args) {
+    const options = readConfig(args.fileName);
+
+    const program = ts.createProgram({
+      rootNames: [args.fileName],
+      options,
+    });
 
     const checker = program.getTypeChecker();
+
+    if (args.checkDiagnostics) {
+      checkDiagnostics(program);
+    }
 
     const tsoogleDeclarations = program
       .getSourceFiles()
       .flatMap((sourceFile) => {
-        const diagnostics = ts.getPreEmitDiagnostics(program, sourceFile);
-
-        assert(
-          !diagnostics.length,
-          `${sourceFile.fileName}:\n${diagnostics
-            .map((diagnostic) => diagnostic.messageText)
-            .join("\n")}`
-        );
-
         const external =
           program.isSourceFileFromExternalLibrary(sourceFile) ||
           sourceFile.isDeclarationFile;
@@ -45,7 +48,7 @@ const app = command({
         assert(moduleSymbol, "Source file is not a module");
 
         const exports = checker.getExportsOfModule(moduleSymbol);
-        return [[sourceFile, exports.length]];
+        return [[sourceFile.fileName, exports.length]];
       });
 
     console.log(tsoogleDeclarations);
