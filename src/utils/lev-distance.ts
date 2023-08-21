@@ -32,7 +32,7 @@ function cached<TParams extends unknown[], TReturn>(
   };
 }
 
-const levDistanceImpl = (a: string, b: string) => {
+const levDistanceImpl = (a: string, b: string): number => {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
 
