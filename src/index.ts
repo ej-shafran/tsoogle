@@ -12,13 +12,12 @@ import {
   string,
 } from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
+
 import { NAME, checkDiagnostics, debug, readConfig, getExports } from "./utils";
-import {
-  TsoogleSignature,
-  getTsoogleSignature,
-  stringifyTsoogle,
-} from "./get-tsoogle-signature";
-import { getDistance } from "./get-tsoogle-distance";
+import { TsoogleFunction } from "./tsoogle/tsoogle-function";
+import { getFromTs } from "./tsoogle/get-from-ts";
+import { getDistance } from "./tsoogle/distance-from-search";
+import { stringify } from "./tsoogle/stringify";
 
 const app = command({
   name: NAME,
@@ -78,9 +77,9 @@ const app = command({
     const tsoogleDeclarations = sourceFiles.flatMap((sourceFile) => {
       return sourceFile
         .getChildren()
-        .flatMap(function walk(node): TsoogleSignature[] {
+        .flatMap(function walk(node): TsoogleFunction[] {
           if (ts.isFunctionDeclaration(node)) {
-            const result = getTsoogleSignature(node, checker);
+            const result = getFromTs(node, checker);
             if (exports.some((name) => result.name === name)) {
               return [result];
             } else {
@@ -92,7 +91,7 @@ const app = command({
           if (ts.isMethodDeclaration(node) && ts.isClassLike(node.parent)) {
             const className = node.parent.name?.getText();
             if (exports.some((name) => className === name)) {
-              const result = getTsoogleSignature(node, checker);
+              const result = getFromTs(node, checker);
               return [result];
             } else {
               return [];
@@ -104,11 +103,7 @@ const app = command({
               .getChildren()
               .find((child): child is ts.Identifier => ts.isIdentifier(child));
 
-            const result = getTsoogleSignature(
-              node,
-              checker,
-              sibling?.getText()
-            );
+            const result = getFromTs(node, checker, sibling?.getText());
 
             if (exports.some((name) => result.name === name)) {
               return [result];
@@ -132,7 +127,7 @@ const app = command({
     }
 
     tsoogleDeclarations.slice(0, args.limit).forEach((declaration) => {
-      console.log(stringifyTsoogle(declaration));
+      console.log(stringify(declaration));
     });
   },
 });

@@ -1,8 +1,9 @@
-import { TsoogleSignature, stringifyTsoogle } from "./get-tsoogle-signature";
-import { levDistance } from "./utils";
+import { TsoogleFunction } from "./tsoogle-function";
+import { levDistance } from "../utils";
+import { stringify } from "./stringify";
 
-export function getDistance(signature: TsoogleSignature, search: string) {
-  const type = stringifyTsoogle(signature, false);
+export function getDistance(signature: TsoogleFunction, search: string) {
+  const type = stringify(signature, { excludeName: true });
   const typeDistance = levDistance(type, search) / type.length;
 
   const name = signature.name;
@@ -11,7 +12,7 @@ export function getDistance(signature: TsoogleSignature, search: string) {
 
   if (!search.includes("::")) return Math.min(typeDistance, nameDistance);
 
-  const full = stringifyTsoogle(signature);
+  const full = stringify(signature);
   const fullDistance = levDistance(full, search);
 
   return Math.min(typeDistance, nameDistance, fullDistance);
