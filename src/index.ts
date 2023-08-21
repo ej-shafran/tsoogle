@@ -3,8 +3,7 @@
 import ts from "typescript";
 import { command, flag, positional, run } from "cmd-ts";
 import { ExistingPath } from "cmd-ts/batteries/fs";
-import assert from "assert";
-import { NAME, checkDiagnostics, debug, readConfig } from "./utils";
+import { NAME, checkDiagnostics, debug, readConfig, getExports } from "./utils";
 
 const app = command({
   name: NAME,
@@ -38,23 +37,22 @@ const app = command({
       checkDiagnostics(program);
     }
 
-    const tsoogleDeclarations = program
+    const sourceFiles = program
       .getSourceFiles()
-      .flatMap((sourceFile) => {
-        const external =
-          program.isSourceFileFromExternalLibrary(sourceFile) ||
-          sourceFile.isDeclarationFile;
+      .filter(
+        (sourceFile) =>
+          !program.isSourceFileFromExternalLibrary(sourceFile) &&
+          !sourceFile.isDeclarationFile
+      );
 
-        if (external) return [];
+    const exports = getExports(sourceFiles, checker);
+    console.log("exports: ", exports);
 
-        const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
-        assert(moduleSymbol, "source file is not a module");
-
-        const exports = checker.getExportsOfModule(moduleSymbol);
-        return [[sourceFile.fileName, exports.length]];
-      });
-
-    console.log(tsoogleDeclarations);
+    // const tsoogleDeclarations = sourceFiles.flatMap((sourceFile) => {
+    //   return sourceFile.fileName;
+    // });
+    //
+    // console.log(tsoogleDeclarations);
   },
 });
 
