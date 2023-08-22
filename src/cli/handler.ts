@@ -6,10 +6,9 @@ import {
   checkDiagnostics,
   debug,
   readConfig,
-  getExports,
+  getExportSymbols,
 } from "../utils";
-import { TsoogleFunction } from "../tsoogle/tsoogle-function";
-import { getFromSignature, getFromTs } from "../tsoogle/get-from-ts";
+import { getFromClass, getFromSignature } from "../tsoogle/get-from-ts";
 import { getDistance } from "../tsoogle/distance-from-search";
 import { stringify } from "../tsoogle/stringify";
 
@@ -38,62 +37,21 @@ export async function handler(args: Args) {
         !sourceFile.isDeclarationFile
     );
 
-  const exports = getExports(sourceFiles, checker);
+  const exportSymbols = getExportSymbols(sourceFiles, checker);
 
-  const tsoogleDeclarations = sourceFiles.flatMap((sourceFile) => {
-    return sourceFile
-      .getChildren()
-      .flatMap(function walk(node): TsoogleFunction[] {
-        if (ts.isVariableDeclaration(node)) {
-          const type = checker.getTypeAtLocation(node);
-          const signatures = type.getCallSignatures();
-          if (signatures.length > 0) {
-            const tsoogle = getFromSignature(signatures[0], checker);
-            const result = { ...tsoogle, name: node.name.getText() };
-            if (exports.some((name) => result.name === name)) {
-              return [result];
-            } else {
-              return [];
-            }
-          }
-        }
+  const tsoogleDeclarations = exportSymbols.flatMap((symbol) => {
+    const type = checker.getTypeOfSymbol(symbol);
 
-        if (ts.isFunctionDeclaration(node)) {
-          const result = getFromTs(node, checker);
-          if (exports.some((name) => result.name === name)) {
-            return [result];
-          } else {
-            return [];
-          }
-        }
+    if (type.getConstructSignatures().length) {
+      return getFromClass(symbol, checker);
+    }
 
-        // TODO prefix class name
-        if (ts.isMethodDeclaration(node) && ts.isClassLike(node.parent)) {
-          const className = node.parent.name?.getText();
-          if (exports.some((name) => className === name)) {
-            const result = getFromTs(node, checker);
-            return [result];
-          } else {
-            return [];
-          }
-        }
+    const name = symbol.getName();
+    const signatures = type.getCallSignatures();
+    if (!signatures.length) return [];
 
-        if (ts.isArrowFunction(node)) {
-          const sibling = node.parent
-            .getChildren()
-            .find((child): child is ts.Identifier => ts.isIdentifier(child));
-
-          const result = getFromTs(node, checker, sibling?.getText());
-
-          if (exports.some((name) => result.name === name)) {
-            return [result];
-          } else {
-            return [];
-          }
-        }
-
-        return node.getChildren().flatMap(walk);
-      });
+    const result = getFromSignature(signatures[0], checker);
+    return [{ ...result, name }];
   });
 
   if (args.search) {

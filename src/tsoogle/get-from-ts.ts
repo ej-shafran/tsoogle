@@ -1,7 +1,7 @@
-import assert from "assert";
 import ts from "typescript";
 import { TsoogleFunction } from "./tsoogle-function";
 import { stringify } from "./stringify";
+import assert from "assert";
 
 declare module "typescript" {
   interface TypeChecker {
@@ -25,6 +25,35 @@ export function getFromSignature(
     returnType,
     typeParameters,
   };
+}
+
+export function getFromClass(
+  classSymbol: ts.Symbol,
+  checker: ts.TypeChecker
+): TsoogleFunction[] {
+  if (!classSymbol.members) return [];
+
+  const methods = Array.from(classSymbol.members.entries());
+
+  return methods.flatMap(([name, methodSymbol]) => {
+    const declarations = methodSymbol.declarations;
+
+    if (
+      !declarations ||
+      !declarations.length ||
+      !ts.isMethodDeclaration(declarations[0])
+    ) {
+      return [];
+    }
+
+    const methodDeclaration = declarations[0];
+
+    const signature = checker.getSignatureFromDeclaration(methodDeclaration);
+    assert(signature, "method must have a signature");
+
+    const result = getFromSignature(signature, checker);
+    return [{ ...result, name: `${classSymbol.getName()}#${name}` }];
+  });
 }
 
 function getReturnType(
@@ -66,22 +95,4 @@ function getTypeParameters(signature: ts.Signature, checker: ts.TypeChecker) {
     if (!name) return [];
     return [name];
   });
-}
-
-export function getFromTs(
-  node: ts.FunctionLikeDeclaration,
-  checker: ts.TypeChecker,
-  defaultName?: string
-): TsoogleFunction {
-  const signature = checker.getSignatureFromDeclaration(node);
-  assert(signature, "function has no signature");
-
-  const name = node.name?.getText() ?? defaultName;
-
-  const tsoogle = getFromSignature(signature, checker);
-
-  return {
-    ...tsoogle,
-    name,
-  };
 }

@@ -1,21 +1,25 @@
 import assert from "assert";
 import ts from "typescript";
 
-export function getExports(
+export function getExportSymbols(
   sourceFiles: ts.SourceFile[],
   checker: ts.TypeChecker
 ) {
-  const exports = sourceFiles.flatMap((sourceFile) => {
+  const results = [] as ts.Symbol[];
+
+  for (const sourceFile of sourceFiles) {
     const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
-    assert(moduleSymbol, "source file is not a module");
+    if (!moduleSymbol) {
+      assert(false, "TODO");
+    }
 
-    const exports = checker.getExportsOfModule(moduleSymbol);
-    return exports.flatMap((symbol) => {
-      const name = symbol.getName();
-      if (name === "default") return [];
-      return name;
-    });
-  });
+    const symbols = checker.getExportsOfModule(moduleSymbol);
+    for (const symbol of symbols) {
+      if (!results.some(({ name }) => symbol.name === name)) {
+        results.push(symbol);
+      }
+    }
+  }
 
-  return Array.from(new Set(exports));
+  return results;
 }
