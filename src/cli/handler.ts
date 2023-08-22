@@ -9,7 +9,7 @@ import {
   getExports,
 } from "../utils";
 import { TsoogleFunction } from "../tsoogle/tsoogle-function";
-import { getFromTs } from "../tsoogle/get-from-ts";
+import { getFromSignature, getFromTs } from "../tsoogle/get-from-ts";
 import { getDistance } from "../tsoogle/distance-from-search";
 import { stringify } from "../tsoogle/stringify";
 
@@ -44,6 +44,20 @@ export async function handler(args: Args) {
     return sourceFile
       .getChildren()
       .flatMap(function walk(node): TsoogleFunction[] {
+        if (ts.isVariableDeclaration(node)) {
+          const type = checker.getTypeAtLocation(node);
+          const signatures = type.getCallSignatures();
+          if (signatures.length > 0) {
+            const tsoogle = getFromSignature(signatures[0], checker);
+            const result = { ...tsoogle, name: node.name.getText() };
+            if (exports.some((name) => result.name === name)) {
+              return [result];
+            } else {
+              return [];
+            }
+          }
+        }
+
         if (ts.isFunctionDeclaration(node)) {
           const result = getFromTs(node, checker);
           if (exports.some((name) => result.name === name)) {

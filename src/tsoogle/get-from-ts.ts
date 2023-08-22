@@ -3,7 +3,7 @@ import ts from "typescript";
 import { TsoogleFunction } from "./tsoogle-function";
 import { stringify } from "./stringify";
 
-function getFromTsImpl(
+export function getFromSignature(
   signature: ts.Signature,
   checker: ts.TypeChecker
 ): TsoogleFunction {
@@ -27,7 +27,7 @@ function getReturnType(
   const signatures = type.getCallSignatures();
 
   if (signatures.length > 0) {
-    const tsoogle = getFromTsImpl(signatures[0], checker);
+    const tsoogle = getFromSignature(signatures[0], checker);
     return stringify(tsoogle);
   }
 
@@ -43,7 +43,7 @@ function getParameters(
     const signatures = type.getCallSignatures();
 
     if (signatures.length > 0) {
-      const tsoogle = getFromTsImpl(signatures[0], checker);
+      const tsoogle = getFromSignature(signatures[0], checker);
       return stringify(tsoogle);
     }
 
@@ -76,7 +76,7 @@ export function getFromTs(
 
   const name = node.name?.getText() ?? defaultName;
 
-  const tsoogle = getFromTsImpl(signature, checker);
+  const tsoogle = getFromSignature(signature, checker);
 
   return {
     ...tsoogle,
