@@ -85,14 +85,16 @@ function getParameters(
 function getTypeParameters(signature: ts.Signature, checker: ts.TypeChecker) {
   const typeParams = signature.getTypeParameters();
 
-  return typeParams?.flatMap((param) => {
-    const paramDeclaration = checker.typeParameterToDeclaration(
-      param,
-      undefined,
-      ts.NodeBuilderFlags.None
-    );
-    const name = paramDeclaration?.name.escapedText;
-    if (!name) return [];
-    return [name];
-  });
+  return (
+    typeParams?.flatMap((param) => {
+      const paramDeclaration = checker.typeParameterToDeclaration(
+        param,
+        undefined,
+        ts.NodeBuilderFlags.None
+      );
+      const name = paramDeclaration?.name.text;
+      if (!name) return [];
+      return [name];
+    }) ?? []
+  );
 }
