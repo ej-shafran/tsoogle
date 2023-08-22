@@ -7,13 +7,12 @@ import { getDistance } from "./distance-from-search";
 export function getFromProgram(program: ts.Program, search?: string) {
   const checker = program.getTypeChecker();
 
-  const sourceFiles = program
-    .getSourceFiles()
-    .filter(
-      (sourceFile) =>
-        !program.isSourceFileFromExternalLibrary(sourceFile) &&
-        !sourceFile.isDeclarationFile
-    );
+  const sourceFiles = program.getSourceFiles().filter(
+    (sourceFile) =>
+      !program.isSourceFileFromExternalLibrary(sourceFile) &&
+      // TODO: flag for default library inclusion
+      !program.isSourceFileDefaultLibrary(sourceFile)
+  );
 
   const exportSymbols = getExportSymbols(sourceFiles, checker);
 
