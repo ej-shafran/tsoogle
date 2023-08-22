@@ -3,6 +3,15 @@ import ts from "typescript";
 import { TsoogleFunction } from "./tsoogle-function";
 import { stringify } from "./stringify";
 
+declare module "typescript" {
+  interface TypeChecker {
+    getExpandedParameters(
+      signature: ts.Signature,
+      skipUnionExpanding?: boolean
+    ): [ts.Symbol[]];
+  }
+}
+
 export function getFromSignature(
   signature: ts.Signature,
   checker: ts.TypeChecker
@@ -38,15 +47,8 @@ function getParameters(
   signature: ts.Signature,
   checker: ts.TypeChecker
 ): string[] {
-  return signature.parameters.map((param) => {
-    const type = checker.getTypeOfSymbol(param);
-    const signatures = type.getCallSignatures();
-
-    if (signatures.length > 0) {
-      const tsoogle = getFromSignature(signatures[0], checker);
-      return stringify(tsoogle);
-    }
-
+  return checker.getExpandedParameters(signature)[0].map((symbol) => {
+    const type = checker.getTypeOfSymbol(symbol);
     return checker.typeToString(type);
   });
 }
