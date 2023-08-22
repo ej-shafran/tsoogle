@@ -1,4 +1,3 @@
-import assert from "assert";
 import ts from "typescript";
 
 export function getExportSymbols(
@@ -10,7 +9,12 @@ export function getExportSymbols(
   for (const sourceFile of sourceFiles) {
     const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
     if (!moduleSymbol) {
-      assert(false, "TODO");
+      // TODO: handle this better
+      const symbols = checker.getSymbolsInScope(
+        sourceFile,
+        ts.SymbolFlags.Function
+      );
+      return symbols;
     }
 
     const symbols = checker.getExportsOfModule(moduleSymbol);
