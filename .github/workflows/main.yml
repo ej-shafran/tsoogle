@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  install:
-    name: Install Dependencies
+  test-and-build:
+    name: Run Tests + Build + Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,18 +20,5 @@ jobs:
         with:
           version: 8
       - run: pnpm install
-
-  test:
-    name: Vitest
-    runs-on: ubuntu-latest
-    needs: [install]
-    steps:
       - run: pnpm test
-
-  build:
-    name: Build + Lint
-    runs-on: ubuntu-latest
-    needs: [install]
-    steps:
       - run: pnpm build
-    
