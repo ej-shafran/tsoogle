@@ -8,9 +8,10 @@ export function stringify(
   tsoogle: TsoogleFunction,
   options: StringifyOptions = {}
 ) {
-  const typeParameters = tsoogle.typeParameters
+  const typeParameters = tsoogle.typeParameters.length
     ? `<${tsoogle.typeParameters.join(", ")}>`
     : "";
+
   const parameters = tsoogle.parameters.join(", ");
   const returnType = tsoogle.returnType;
 
